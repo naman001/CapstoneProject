@@ -1,0 +1,241 @@
+﻿@{
+    ViewData["Title"] = "Overview";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>Overview</h1>
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12">
+            <br />
+            <div id="boostrapModalFullCalendar"></div>
+        </div>
+    </div>
+</div>
+<div id="fullCalModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true"></span><span class="sr-only">close</span></button>
+                <h4 id="modalTitle" class="modal-title"></h4>
+            </div>
+            <div id="modalBody" class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="fullCalModalSave" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true"></span><span class="sr-only">close</span></button>
+                <h4 id="modalTitle" class="modal-title"></h4>
+            </div>
+            <div id="modalBody" class="modal-body">
+                <form class="col-md-12 form-horizontal">
+                    <input type="hidden" id="hdEventId" value="0" />
+                    <div class="form-group">
+                        <label>Reason</label>
+                        @*<input type="text" id="txtSubject" class="form-control" />*@
+                        <select id="txtSubject" class="form-control" autofocus>
+                            <option value="casual check">1. casual check</option>
+                            <option value="revisit">2. revisit</option>
+                            <option value="others">3. others</option>
+                            <option value="">4. null</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Appointment Date</label>
+                        <div class="input-group" id="dtp0">
+                            <input type="text" id="txtDate" class="form-control" readonly />
+                            <span class="input-group-addon"></span>
+                        </div>
+                    </div>
+                    <div class="form-group" hidden>
+                        <label>Start</label>
+                        <div class="input-group" id="dtp1">
+                            <input type="datetime-local" id="txtStart" class="form-control" />
+                            <span class="input-group-addon"></span>
+                        </div>
+                    </div>
+                    <div class="form-group" hidden>
+                        <label>End</label>
+                        <div class="input-group" id="dtp2">
+                            <input type="datetime-local" id="txtEnd" class="form-control" />
+                            <span class="input-group-addon"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Choose slot</label>
+                        <select id="timeSlot" class="form-control">
+                            <option value="T08:00:00,T09:30:00">1. slot1 (08:00-09:30)</option>
+                            <option value="T09:30:00,T11:00:00">2. slot2 (09:30-11:00)</option>
+                            <option value="T11:00:00,T12:30:00">3. slot3 (11:00-12:30)</option>
+                            <option value="T14:00:00,T15:30:00">4. slot4 (14:00-15:30)</option>
+                            <option value="T15:30:00,T17:00:00">5. slot5 (15:30-17:00)</option>
+                            <option value="T17:00:00,T18:30:00">6. slot6 (17:00-18:30)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="txtDescription" rows="3" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Theme Color</label>
+                        <select id="ddThemeColor" class="form-control">
+                            <option value="">Default</option>
+                            <option value="red">Red</option>
+                            <option value="blue">Blue</option>
+                            <option value="black">Black</option>
+                            <option value="green">Green</option>
+                        </select>
+                    </div>
+                    <button type="button" id="btnSave" class="btn btn-success">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.6.1/fullcalendar.min.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.16.0/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.6.1/fullcalendar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.6.1/fullcalendar.print.min.css"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.6.1/gcal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js" type="text/javascript"></script>
+
+@section Scripts{
+    <script>
+        $(document).ready(function() {
+            var schedules = [];
+            var selectedSchedule = null;
+            //call api n save data into schedules array
+            function FetchScheduleNRerenderCalendar() {
+                schedules = [];
+                $.ajax({
+                    type:"GET",
+                    url: "https://localhost:44388/api/ReservedSchedules",
+                    success: function(data){
+                        $.each(data, function (i, v){
+                            schedules.push({
+                                ScheduleId = v.scheduleId,
+                                SlotId = v.SlotId,
+                                DocId = v.DocId,
+                                PatientId = v.PatientId,
+                                Title = v.Title,
+                                Description = v.Description,
+                                Start = v.Start,
+                                End = v.End
+                            })
+                        })
+                        GenerateCalenedar(schedules);
+                    },
+                    error: function(error){
+                        alert('failed');
+                    }
+                })
+            }
+
+            //create calendar
+            function GenerateCalendar(schedules){
+                $("#boostrapModalFullCalendar").fullCalendar('destroy');
+                $("#boostrapModalFullCalendar").fullCalendar({
+                    contentHeight: 600,
+                    defaultDate: new Date(),
+                    timeFormat: 'h(:mm)a',
+                    header:{
+                        left: 'prev, next',
+                        center: 'title',
+                        right: 'today',
+                    },
+                    eventLimit: true,
+                    eventColor: '#378006',
+                    events: schedules,
+                    eventClick: function(event, jsEvent, view){
+                        selectedSchedule = event,
+                        $('#modalTitle').html(event.title),
+                        var $description = $('<div/>');
+                        $description.append($('<p/>').html('<b>Start: </b>' + event.start.format("DD-MMM-YYYY HH:mm a")));
+                        if(event.end != null){
+                            $description.append($('<p/>').html('<b>End: </b>' + event.end.format("DD-MMM-YYYY HH:mm a")));
+                        }
+                        $description.append($('<p/>').html('<b>Description: </b>' + event.description))
+                        $('#modalBody').empty().html($description);
+                        $('#eventUrl').attr('href', event.url);
+                        $('#fullCalModal').modal();
+                        return false;
+                    },
+                    selectable: true,
+                    select: function (start, end){
+                        selectedSchedule = {
+                            ScheduleId = 0,
+                            SlotId = 0,
+                            DocId = 0,
+                            PatientId = 0,
+                            Title = '',
+                            Description = '',
+                            Start = start,
+                            End = end
+                        };
+                        OpenAddForm();
+                        $('#calendar').fullCalendar('unselect');
+                    },
+                    selectAllow: function(event){
+                        return moment(event.start).utcOffset(false).isSame(moment(event.end).subtract(1, 'second').utcOffset(false), 'day');
+                    }
+                })
+            }
+            function OpenAddForm() {
+                console.log(selectedSchedule.start.format('DD-MM-YYYY'));
+                var timeSlot = $('#timeSlot').val();
+                var timeSplit = timeSlot.split(",");
+                console.log(timeSplit);
+                console.log(selectedSchedule.start.format('YYYY-MM-DD') + timeSplit[0]);
+                $('#txtDate').val(selectedSchedule.start.format('DD/MM/YYYY'))
+                $('#txtStart').val(selectedSchedule.start.format('MM/DD/YYYY HH:mm A'));
+                $('#txtEnd').val(selectedSchedule.end.format('MM/DD/YYYY HH:mm A'));
+                $("#boostrapModalFullCalendar").modal('hide');
+                $('#fullCalModalSave').modal();
+            }
+            $('#btnSave').click(function(){
+                if($('#txtSubject').val().trim() == ""){
+                    alert('Subject required');
+                    return;
+                }
+                var date = selectedSchedule.start.format('YYYY-MM-DD');
+                var timeSlot = $('#timeSlot').val();
+                var timeSplit = timeSlot.split(",");
+                var data = {
+                    title: $('#txtSubject').val().trim(),
+                    description: $('#txtDescription').val(),
+                    start: date + timeSplit[0],
+                    end: date + timeSplit[1],
+                }
+                SaveEvent(data);
+            })
+            function SaveEvent(data){
+                $.ajax({
+                    type:"POST",
+                    headers:{
+                        'Content-Type': "application/json",
+                    },
+                    url: 'https://localhost:44388/api/ReservedSchedules',
+                    data: JSON.stringify(data),
+                    success: function(data){
+                        $("#fullCalModalSave").modal('hide');
+                        FetchEventNRerenderCalendar();
+                    },
+                    error: function(){
+                        alert('Failed');
+                    }
+                })
+            }
+        })
+    </script>
+}
